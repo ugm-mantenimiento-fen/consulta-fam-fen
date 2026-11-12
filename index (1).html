@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Consulta de FAM – Ficha de Autodiagnóstico FEN</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Source+Sans+3:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+<style>
+  :root{
+    --navy:#1F4E79; --navy-2:#163a5c; --ink:#1f2933; --muted:#5b6670; --line:#e3e7eb; --bg:#f4f6f8; --card:#ffffff;
+    --red:#B91C1C; --red-bg:#FEE2E2; --green:#047857; --green-bg:#D1FAE5; --amber:#B45309; --amber-bg:#FEF3C7;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:"Source Sans 3",system-ui,-apple-system,Segoe UI,Roboto,sans-serif;color:var(--ink);background:var(--bg);line-height:1.45}
+  header{background:var(--navy);color:#fff;padding:22px 16px 26px}
+  .wrap{max-width:880px;margin:0 auto}
+  header .kicker{font-size:13px;letter-spacing:.06em;text-transform:uppercase;opacity:.8;margin:0 0 4px}
+  header h1{font-size:24px;line-height:1.2;margin:0 0 6px;font-weight:700}
+  header p{margin:0;opacity:.9;font-size:15px}
+  .search{background:var(--card);border-radius:12px;box-shadow:0 6px 20px rgba(16,42,67,.12);padding:16px;margin:-14px auto 0;position:relative}
+  .search label{display:block;font-weight:600;margin-bottom:8px}
+  .search .hint{margin:0 0 12px;font-size:16px}
+  .note{background:#EFF6FF;border:1px solid #BFDBFE;border-left:5px solid var(--navy);border-radius:10px;padding:14px 16px;margin-top:12px;font-size:15px}
+  .note p{margin:0}
+  .note p + p{margin-top:8px}
+  .help{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 16px;margin-top:16px;font-size:15px}
+  .row{display:flex;gap:8px}
+  .row input{flex:1;min-width:0;font:inherit;font-size:18px;padding:11px 12px;border:1.5px solid var(--line);border-radius:8px}
+  .row input:focus{outline:none;border-color:var(--navy);box-shadow:0 0 0 3px rgba(31,78,121,.15)}
+  .row button{font:inherit;font-weight:700;font-size:16px;background:var(--navy);color:#fff;border:0;border-radius:8px;padding:0 18px;cursor:pointer}
+  .row button:hover{background:var(--navy-2)}
+  .status{font-size:14px;color:var(--muted);margin-top:8px;min-height:20px}
+  main{padding:18px 16px 40px}
+  .msg{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:16px;margin-top:14px}
+  .msg.warn{border-left:5px solid var(--amber);background:var(--amber-bg)}
+  .ie{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px;margin-top:14px}
+  .ie h2{margin:0 0 4px;font-size:21px;line-height:1.25}
+  .meta{display:flex;flex-wrap:wrap;gap:6px 18px;color:var(--muted);font-size:14px}
+  .meta b{color:var(--ink);font-weight:600}
+  .badges{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:4px 12px;font-size:14px;font-weight:600}
+  .pill.obl{background:var(--red-bg);color:var(--red)}
+  .pill.comp{background:var(--green-bg);color:var(--green)}
+  .pill.prio{background:#E8EEF5;color:var(--navy)}
+  .cat{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-top:12px;overflow:hidden}
+  .cat h3{margin:0;padding:12px 16px;font-size:16px;background:#F0F4F8;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
+  .cat h3 span.n{color:var(--muted);font-weight:600;font-size:14px;white-space:nowrap}
+  .fam{display:grid;grid-template-columns:62px 1fr;gap:4px 12px;padding:12px 16px;border-top:1px solid var(--line)}
+  .fam:first-of-type{border-top:0}
+  .code{font-weight:700;font-size:17px;color:var(--navy);font-variant-numeric:tabular-nums}
+  .name{font-weight:600}
+  .sub{grid-column:2;display:flex;flex-wrap:wrap;gap:6px 12px;font-size:13px;color:var(--muted)}
+  .tag{font-weight:700;font-size:12px;border-radius:4px;padding:1px 7px}
+  .tag.obl{background:var(--red-bg);color:var(--red)}
+  .tag.comp{background:var(--green-bg);color:var(--green)}
+  .legend{font-size:13px;color:var(--muted);margin-top:16px}
+  footer{font-size:13px;color:var(--muted);text-align:center;padding:0 16px 28px}
+  @media (max-width:520px){header h1{font-size:21px}.row button{padding:0 14px}.fam{grid-template-columns:52px 1fr}}
+</style>
+</head>
+<body>
+<header>
+  <div class="wrap">
+    <p class="kicker">Programa de mantenimiento FEN 2026-2027</p>
+    <h1>Consulta de FAM programadas</h1>
+    <p>Ficha de Autodiagnóstico de Vulnerabilidad frente a Lluvias Intensas</p>
+  </div>
+</header>
+
+<main>
+  <div class="wrap">
+    <form class="search" id="f" autocomplete="off">
+      <p class="hint">Escribe el código de local de tu institución educativa y presiona <b>Buscar</b>.</p>
+      <label for="cod">Código de local educativo</label>
+      <div class="row">
+        <input id="cod" inputmode="numeric" placeholder="Ej.: 000019" aria-describedby="st">
+        <button type="submit">Buscar</button>
+      </div>
+      <div class="status" id="st">Cargando información…</div>
+    </form>
+    <div id="out"></div>
+    <p class="help">¿Tienes dudas o no encuentras tu local educativo? Comunícate con el <b>sectorista</b> de tu UGEL o DRE.</p>
+    <p class="legend">Categorías según el Anexo N° 6 de la RM N° 670-2026-MINEDU. La información se actualiza a partir del día siguiente al envío de la ficha.</p>
+  </div>
+</main>
+<footer id="foot"></footer>
+
+<script>
+/* =========================  CONFIGURACIÓN  ========================= */
+const CSV_URL = "PEGAR_AQUI_EL_ENLACE_CSV_PUBLICADO";
+/* =================================================================== */
+
+const CATS = {
+  "1":"Cubiertas – techos", "2":"Instalaciones para drenaje pluvial", "3":"Instalaciones sanitarias",
+  "4":"Instalaciones eléctricas", "5":"Muros", "6":"Pisos", "7":"Ventanas", "8":"Seguridad y accesibilidad", "9":"Transporte"
+};
+const FAM = { // código: [nombre corto, ID subpartida OTI]
+  "1.01":["Cubiertas livianas (metálicas, plásticas, termoacústicas, madera, aglomerados o similar)",837],
+  "1.02":["Techo de concreto y/o ladrillo en edificaciones existentes",853],
+  "1.03":["Estructuras existentes de cubiertas livianas",854],
+  "1.04":["Cielo raso existente y superficies inferiores de cubiertas y/o techos de concreto",855],
+  "1.05":["Falso cielo raso",856],
+  "2.01":["Canaletas y/o elementos de captación de aguas pluviales",857],
+  "2.02":["Bajantes y/o elementos de conducción vertical de aguas pluviales",858],
+  "2.03":["Cunetas y/o elementos de conducción horizontal de aguas pluviales hacia un cuerpo receptor",859],
+  "2.04":["Zanjas de infiltración y/o elementos complementarios de infiltración",860],
+  "2.05":["Bombas y/o elementos complementarios de bombeo para aguas pluviales",861],
+  "2.06":["Tanques y/o elementos de almacenamiento y aprovechamiento de aguas pluviales",862],
+  "2.07":["Válvula antirretorno y/o elementos de protección y control del drenaje pluvial",863],
+  "3.01":["Tanque elevado de concreto existente",750],
+  "3.02":["Tanque cisterna de concreto existente",751],
+  "3.03":["Tanque cisterna de PVC",554],
+  "3.04":["Tanque elevado de PVC",555],
+  "3.05":["Sistema de evacuación de desagüe",752],
+  "3.06":["Tanque séptico y/o pozo percolador",557],
+  "3.07":["Biodigestor y/o núcleo basón",558],
+  "3.08":["Válvula antirretorno del sistema de evacuación de desagüe",864],
+  "4.01":["Tablero y/o sub-tablero eléctrico",745],
+  "4.02":["Circuitos eléctricos",746],
+  "4.03":["Luminarias, tomacorrientes e interruptores",640],
+  "4.04":["Sistema de puesta a tierra (pozo y conductores)",694],
+  "5.01":["Superficie en muros existentes de ladrillo y/o concreto",869],
+  "5.02":["Superficie en muros existentes de tierra cruda (adobe, tapial o quincha)",838],
+  "5.03":["Zócalos y/o contrazócalos para protección contra la humedad",839],
+  "5.04":["Sardineles",700],
+  "5.05":["Juntas de dilatación y/o contracción",761],
+  "5.06":["Elementos de protección y/o apuntalamiento temporal de muros",865],
+  "5.07":["Tabiques o muros ligeros",759],
+  "6.01":["Elementos antideslizantes",785],
+  "6.02":["Soportes y estructura de pisos elevados existentes",866],
+  "6.03":["Acabados antideslizantes de alto tránsito en pisos interiores",782],
+  "6.04":["Acabados antideslizantes de alto tránsito en exteriores",792],
+  "7.01":["Carpintería de madera y/o bambú en ventanas",867],
+  "7.02":["Carpintería metálica en ventanas",763],
+  "7.03":["Mallas mosquiteras",765],
+  "8.01":["Señalización de seguridad y accesibilidad universal",769],
+  "8.02":["Fumigación",773],
+  "8.03":["Barreras de protección contra inundaciones",868],
+  "9.01":["Servicio de transporte terrestre",790],
+  "9.02":["Servicio de transporte fluvial",791]
+};
+
+const $ = id => document.getElementById(id);
+const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+const normCod = s => String(s ?? "").replace(/\D/g, "").replace(/^0+/, "");
+let ROWS = [];
+
+function parseDate(s){
+  if (!s) return null;
+  const t = String(s).trim();
+  let d = new Date(t.replace(" ", "T"));
+  if (!isNaN(d)) return d;
+  const m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?/); // dd/mm/aaaa hh:mm
+  if (m) return new Date(+m[3], +m[2]-1, +m[1], +(m[4]||0), +(m[5]||0), +(m[6]||0));
+  return null;
+}
+const fmtDate = d => d ? d.toLocaleDateString("es-PE", {day:"2-digit", month:"2-digit", year:"numeric"}) : "—";
+
+function famList(text, tipo){
+  const out = [];
+  for (const part of String(text || "").split("·")){
+    const m = part.match(/(\d)\.(\d{2})/);
+    if (!m) continue;
+    const code = `${m[1]}.${m[2]}`;
+    out.push({code, tipo: /evaluar/i.test(part) ? "Complementaria (evaluar)" : tipo});
+  }
+  return out;
+}
+
+function render(cod){
+  const key = normCod(cod);
+  const out = $("out");
+  if (!key){ out.innerHTML = ""; return; }
+  const hits = ROWS.filter(r => normCod(r.cod_local) === key);
+  if (!hits.length){
+    out.innerHTML = `<div class="msg warn"><b>No encontramos fichas para el código ${esc(cod)}.</b><br>
+      Verifica el código de local. Si la ficha se envió hoy, podrás verla a partir de mañana.</div>`;
+    return;
+  }
+  hits.sort((a,b) => (parseDate(b.fecha)||0) - (parseDate(a.fecha)||0));
+  const r = hits[0];
+  const seen = new Set(), items = [];
+  for (const it of [...famList(r.fam_obl, "Obligatoria"), ...famList(r.fam_comp, "Complementaria")]){
+    if (seen.has(it.code)) continue; seen.add(it.code); items.push(it);
+  }
+  items.sort((a,b) => a.code.localeCompare(b.code, "es", {numeric:true}));
+  const nObl = items.filter(i => i.tipo === "Obligatoria").length;
+  const nComp = items.length - nObl;
+
+  let html = `<section class="ie">
+    <h2>${esc(String(r.ie || "Institución educativa").replace(/^\[|\]$/g, ""))}</h2>
+    <div class="meta">
+      <span>Código de local: <b>${esc(/^\d+$/.test(String(r.cod_local).trim()) ? String(r.cod_local).trim().padStart(6, "0") : r.cod_local)}</b></span>
+      ${r.ugel ? `<span>UGEL: <b>${esc(r.ugel)}</b></span>` : ""}
+      ${r.region ? `<span>Región: <b>${esc(r.region)}</b></span>` : ""}
+      <span>Ficha enviada: <b>${fmtDate(parseDate(r.fecha))}</b></span>
+    </div>
+    <div class="badges">
+      <span class="pill obl">${nObl} FAM obligatoria${nObl === 1 ? "" : "s"}</span>
+      <span class="pill comp">${nComp} complementaria${nComp === 1 ? "" : "s"}</span>
+    </div>
+    ${hits.length > 1 ? `<p class="meta" style="margin:10px 0 0">Este local tiene ${hits.length} fichas enviadas; se muestra la más reciente.</p>` : ""}
+  </section>`;
+
+  if (items.length){
+    html += `<div class="note"><p><b>Acciones recomendadas para tu local educativo.</b> Las siguientes partidas se sugieren a partir de la información que registraste en la Ficha de Autodiagnóstico, como herramienta de apoyo para identificar necesidades vinculadas a las lluvias intensas por el Fenómeno El Niño.</p>
+      <p>No constituyen una obligación: la programación final de la Ficha de Acciones de Mantenimiento (FAM) corresponde al responsable del mantenimiento del local educativo, de acuerdo con el presupuesto asignado y las necesidades que se presenten.</p></div>`;
+  }
+  if (!items.length){
+    html += `<div class="msg">La ficha de este local no registra FAM programadas.</div>`;
+  }
+  const groups = {};
+  for (const it of items) (groups[it.code[0]] ??= []).push(it);
+  for (const k of Object.keys(groups).sort()){
+    const list = groups[k];
+    html += `<section class="cat"><h3>${k}. ${esc(CATS[k] || "Otras")}<span class="n">${list.length} FAM</span></h3>`;
+    for (const it of list){
+      const info = FAM[it.code] || ["(código no encontrado en el catálogo)", ""];
+      const cls = it.tipo === "Obligatoria" ? "obl" : "comp";
+      html += `<div class="fam"><div class="code">${it.code}</div><div class="name">${esc(info[0])}</div>
+        <div class="sub"><span class="tag ${cls}">${esc(it.tipo)}</span></div></div>`;
+    }
+    html += `</section>`;
+  }
+  out.innerHTML = html;
+}
+
+// Acepta los nombres de columna de la descarga de KoBo o los nombres cortos
+const ALIAS = {
+  cod_local: ["cod_local", "1. Código de local educativo", "Código de local educativo", "Código local"],
+  ie:        ["ie", "nombre_ie"],
+  region:    ["region", "Región"],
+  ugel:      ["ugel", "dre_ugel"],
+  prioridad: ["prioridad", "prioridad_global"],
+  fam_obl:   ["fam_obl", "fam_lista_obl"],
+  fam_comp:  ["fam_comp", "fam_lista_comp"],
+  fecha:     ["fecha", "_submission_time", "Fecha de llenado"]
+};
+const clean = k => String(k || "").trim().toLowerCase();
+function normRow(r){
+  const keys = Object.keys(r), out = {};
+  for (const [field, names] of Object.entries(ALIAS)){
+    let k = null;
+    for (const n of names){ k = keys.find(x => clean(x) === clean(n)); if (k) break; }
+    if (!k && field === "cod_local") k = keys.find(x => /c[oó]digo de local/i.test(x));
+    out[field] = k ? r[k] : "";
+  }
+  return out;
+}
+
+function load(){
+  const url = new URLSearchParams(location.search).get("csv") || CSV_URL;
+  if (!url || url.startsWith("PEGAR_")){
+    $("st").textContent = "Falta configurar el enlace CSV de la base (variable CSV_URL).";
+    return;
+  }
+  Papa.parse(url + (url.includes("?") ? "&" : "?") + "t=" + Date.now(), {
+    download: true, header: true, skipEmptyLines: true,
+    complete: res => {
+      ROWS = res.data.map(normRow).filter(r => r.cod_local);
+      const last = ROWS.map(r => parseDate(r.fecha)).filter(Boolean).sort((a,b) => b - a)[0];
+      $("st").textContent = ROWS.length === 1 ? "1 ficha cargada." : `${ROWS.length} fichas cargadas.`;
+      $("foot").textContent = last ? `Última ficha recibida: ${fmtDate(last)}` : "";
+      const q = new URLSearchParams(location.search).get("cod");
+      if (q){ $("cod").value = q; render(q); }
+    },
+    error: () => { $("st").textContent = "No se pudo cargar la base. Intenta nuevamente en unos minutos."; }
+  });
+}
+
+$("f").addEventListener("submit", e => { e.preventDefault(); render($("cod").value); });
+load();
+</script>
+</body>
+</html>
